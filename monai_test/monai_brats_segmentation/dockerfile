@@ -1,0 +1,33 @@
+# Use NVIDIA PyTorch base image (CUDA 11.7 + cuDNN 8 runtime)
+FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \                   # Required for Git-based package installations
+    libglib2.0-0 \          # GLib library for low-level core functionality
+    libsm6 \                # X11 Session Management library
+    libxext6 \              # X11 miscellaneous extension library
+    libxrender-dev \        # X Rendering Extension library (development files)
+    && rm -rf /var/lib/apt/lists/*  # Clean APT cache
+
+# Copy requirements file first to leverage Docker layer caching
+COPY requirements.txt .
+
+# Install Python dependencies with Tsinghua mirror
+RUN pip install --no-cache-dir \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    -r requirements.txt
+
+# Copy application code and pre-trained model
+COPY monai_brats_segmentation.py .  # MONAI BraTS segmentation algorithm
+COPY model.pt .                     # Pre-trained model weights
+
+# Expose application port # 
+EXPOSE 8015  # For API/HTTP communication
+
+# Container startup command
+CMD ["python", "monai_brats_segmentation.py"]
+
